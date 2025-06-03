@@ -37,9 +37,19 @@ class TamagotchiOverlay(QtWidgets.QWidget):
 
         self.setMouseTracking(True)
 
+        # Carica il PNG del biscotto e crea la versione desaturata
+        self.cookie_img = QtGui.QPixmap("cookie.png").scaled(24, 24, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+        self.cookie_img_gray = self.desaturate_pixmap(self.cookie_img)
+
+    def desaturate_pixmap(self, pixmap):
+        # Converte un QPixmap a scala di grigi
+        img = pixmap.toImage().convertToFormat(QtGui.QImage.Format_Grayscale8)
+        return QtGui.QPixmap.fromImage(img)
+
     def init_status_labels(self):
         fields = [
-            "hunger", "happiness", "energy", "hygiene", "health",
+            # "hunger",  # <-- RIMUOVI la label per la fame
+            "happiness", "energy", "hygiene", "health",
             "age", "weight", "discipline", "sick", "needs_toilet"
         ]
         y_offset = 0
@@ -55,13 +65,17 @@ class TamagotchiOverlay(QtWidgets.QWidget):
     def update_status_labels_position(self):
         # Posiziona le label vicino al Tamagotchi
         base_x = self.tama_pos.x() + self.tama_img.width() + 20
-        base_y = self.tama_pos.y()
+        base_y = self.tama_pos.y() + 28
+        # Sposta tutte le label, ma la fame non c'è più
         for i, label in enumerate(self.status_labels.values()):
             label.move(base_x, base_y + i * 28)
 
     def update_status(self):
         status = self.tamagotchi.status()
         for field, label in self.status_labels.items():
+            # if field == "hunger":
+            #     label.setText("")  # Non serve più
+            # else:
             value = status[field]
             label.setText(f"{field.capitalize()}: {value}")
         QtCore.QTimer.singleShot(500, self.update_status)
@@ -70,6 +84,21 @@ class TamagotchiOverlay(QtWidgets.QWidget):
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.drawPixmap(self.tama_pos, self.tama_img)
+        # Disegna i biscotti per la fame
+        hunger = self.tamagotchi.status()["hunger"]
+        full_cookies = (100 - hunger) // 10
+        empty_cookies = 10 - full_cookies
+        # Calcola la posizione dove sarebbero state le label (sopra la prima label)
+        base_x = self.tama_pos.x() + self.tama_img.width() + 20
+        base_y = self.tama_pos.y()
+        x = base_x
+        y = base_y
+
+        for i in range(10):
+            if i < full_cookies:
+                painter.drawPixmap(x + i * 26, y, self.cookie_img)
+
+
         # Disegna l'emoji del cibo se presente
         if self.food_pos and self.food_emoji:
             font = QtGui.QFont("Arial", 40)
