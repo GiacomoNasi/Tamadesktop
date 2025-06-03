@@ -12,10 +12,10 @@ class TamagotchiOverlay(QtWidgets.QWidget):
             QtCore.Qt.Tool
         )
         self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
-        self.setGeometry(100, 100, 600, 400)
+        self.setGeometry(100, 100, 1000, 1000)
 
         self.tama_img = QtGui.QPixmap(image_path).scaled(150, 150, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
-        self.tama_pos = QtCore.QPoint(self.width() // 2 - 75, self.height() // 2 - 75)
+        self._tama_pos = QtCore.QPoint(self.width() // 2 - 75, self.height() // 2 - 75)
 
         self.food_img = QtGui.QPixmap("food.png").scaled(60, 60, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
         self.food_pos = None
@@ -74,9 +74,11 @@ class TamagotchiOverlay(QtWidgets.QWidget):
         if self.placing_food:
             # Posa il cibo dove hai cliccato
             self.food_pos = event.pos() - QtCore.QPoint(self.food_img.width() // 2, self.food_img.height() // 2)
+            print(self.food_pos)
             self.placing_food = False
-            self.update()
-            self.move_tamagotchi_to_food()
+            self.update()  # Richiede il repaint
+            # Avvia l’animazione solo dopo che il cibo è stato disegnato
+            QtCore.QTimer.singleShot(0, self.move_tamagotchi_to_food)
             return
         elif QtCore.QRect(self.tama_pos, self.tama_img.size()).contains(event.pos()):
             self.toggle_buttons()
@@ -143,21 +145,24 @@ class TamagotchiOverlay(QtWidgets.QWidget):
     def move_tamagotchi_to_food(self):
         if not self.food_pos:
             return
+        print(f"Moving Tamagotchi to food at {self.food_pos}")
         self.anim = QtCore.QPropertyAnimation(self, b"tama_pos")
-        self.anim.setDuration(600)
+        self.anim.setDuration(1000)
         self.anim.setStartValue(self.tama_pos)
+        print(f"Start position: {self.tama_pos}")
         self.anim.setEndValue(self.food_pos)
+        print(f"End position: {self.food_pos}")
         self.anim.finished.connect(self.eat_food)
         self.anim.start()
 
     def get_tama_pos(self):
-        return self.tama_pos
+        return self._tama_pos
 
     def set_tama_pos(self, pos):
-        self.tama_pos = pos
+        self._tama_pos = pos
         self.update()
 
-    tama_pos_prop = QtCore.pyqtProperty(QtCore.QPoint, fget=get_tama_pos, fset=set_tama_pos)
+    tama_pos = QtCore.pyqtProperty(QtCore.QPoint, fget=get_tama_pos, fset=set_tama_pos)
 
     def eat_food(self):
         self.tamagotchi.feed(self.food_type)
