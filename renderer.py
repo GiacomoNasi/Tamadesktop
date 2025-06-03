@@ -30,6 +30,7 @@ class TamagotchiOverlay(QtWidgets.QWidget):
         self.status_labels = {}
         self.init_status_labels()
         self.update_status()
+        self.update_status_labels_position()  # <-- aggiorna subito la posizione
         self.tick_timer = QtCore.QTimer(self)
         self.tick_timer.timeout.connect(self.tick)
         self.tick_timer.start(1000)
@@ -41,15 +42,22 @@ class TamagotchiOverlay(QtWidgets.QWidget):
             "hunger", "happiness", "energy", "hygiene", "health",
             "age", "weight", "discipline", "sick", "needs_toilet"
         ]
-        y = 20
+        y_offset = 0
         for field in fields:
             label = QtWidgets.QLabel(self)
             label.setText("")
             label.setStyleSheet("background: rgba(255,255,255,0.8); border: 1px solid #bbb; font: 14px Arial;")
-            label.setGeometry(self.width() - 220, y, 200, 24)
+            label.setGeometry(0, 0, 200, 24)  # la posizione verrà aggiornata dopo
             label.show()
             self.status_labels[field] = label
-            y += 28
+            y_offset += 28
+
+    def update_status_labels_position(self):
+        # Posiziona le label vicino al Tamagotchi
+        base_x = self.tama_pos.x() + self.tama_img.width() + 20
+        base_y = self.tama_pos.y()
+        for i, label in enumerate(self.status_labels.values()):
+            label.move(base_x, base_y + i * 28)
 
     def update_status(self):
         status = self.tamagotchi.status()
@@ -170,6 +178,7 @@ class TamagotchiOverlay(QtWidgets.QWidget):
 
     def set_tama_pos(self, pos):
         self._tama_pos = pos
+        self.update_status_labels_position()  # <-- aggiorna la posizione delle label
         self.update()
 
     tama_pos = QtCore.pyqtProperty(QtCore.QPoint, fget=get_tama_pos, fset=set_tama_pos)
@@ -211,4 +220,3 @@ if __name__ == "__main__":
     overlay = TamagotchiOverlay(tama, "tamagochi.png")
     overlay.show()
     sys.exit(app.exec_())
-
