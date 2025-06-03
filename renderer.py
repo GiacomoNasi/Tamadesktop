@@ -19,8 +19,10 @@ class TamagotchiOverlay(QtWidgets.QWidget):
 
         self.food_img = QtGui.QPixmap("food.png").scaled(60, 60, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
         self.food_pos = None
-        self.food_dragging = False
-        self.food_type = "meal"
+        self.food_type = None
+
+        self.placing_food = False
+        self.food_mouse_pos = QtCore.QPoint(0, 0)
 
         self.buttons = []
         self.buttons_visible = False
@@ -59,33 +61,41 @@ class TamagotchiOverlay(QtWidgets.QWidget):
     def paintEvent(self, event):
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        # Disegna Tamagotchi
         painter.drawPixmap(self.tama_pos, self.tama_img)
-        # Disegna cibo se presente
         if self.food_pos:
             painter.drawPixmap(self.food_pos, self.food_img)
-        # Disegna bottoni se visibili
+        if self.placing_food:
+            painter.drawPixmap(self.food_mouse_pos - QtCore.QPoint(self.food_img.width() // 2, self.food_img.height() // 2), self.food_img)
         if self.buttons_visible:
             for btn in self.buttons:
                 btn.draw(painter)
 
     def mousePressEvent(self, event):
-        if self.food_pos and (QtCore.QRect(self.food_pos, self.food_img.size()).contains(event.pos())):
-            self.food_dragging = True
+        if self.placing_food:
+            # Posa il cibo dove hai cliccato
+            self.food_pos = event.pos() - QtCore.QPoint(self.food_img.width() // 2, self.food_img.height() // 2)
+            self.placing_food = False
+            self.update()
+            self.move_tamagotchi_to_food()
+            return
         elif QtCore.QRect(self.tama_pos, self.tama_img.size()).contains(event.pos()):
             self.toggle_buttons()
+        elif self.buttons_visible:
+            for btn in self.buttons:
+                if btn.contains(event.pos()):
+                    btn.cmd()
+                    self.hide_buttons()
+                    break
         else:
             self.hide_buttons()
 
     def mouseMoveEvent(self, event):
-        if self.food_dragging and self.food_pos:
-            self.food_pos = event.pos() - QtCore.QPoint(self.food_img.width() // 2, self.food_img.height() // 2)
+        if self.placing_food:
+            self.food_mouse_pos = event.pos()
             self.update()
 
     def mouseReleaseEvent(self, event):
-        if self.food_dragging:
-            self.food_dragging = False
-            self.move_tamagotchi_to_food()
+        pass  # Non serve più per il cibo
 
     def toggle_buttons(self):
         if self.buttons_visible:
@@ -96,8 +106,8 @@ class TamagotchiOverlay(QtWidgets.QWidget):
     def show_buttons(self):
         self.buttons = []
         actions = [
-            ("🍚", lambda: self.spawn_food("meal")),
-            ("🍬", lambda: self.spawn_food("snack")),
+            ("🍚", lambda: self.start_placing_food("meal")),
+            ("🍬", lambda: self.start_placing_food("snack")),
             ("⚽", self.tamagotchi.play),
             ("💤", self.tamagotchi.sleep),
             ("🧼", self.tamagotchi.clean),
@@ -119,35 +129,20 @@ class TamagotchiOverlay(QtWidgets.QWidget):
         self.update()
 
     def mouseDoubleClickEvent(self, event):
-        # Per test: doppio click chiude la finestra
         self.close()
 
-    def mousePressEvent(self, event):
-        if self.food_pos and (QtCore.QRect(self.food_pos, self.food_img.size()).contains(event.pos())):
-            self.food_dragging = True
-        elif QtCore.QRect(self.tama_pos, self.tama_img.size()).contains(event.pos()):
-            self.toggle_buttons()
-        elif self.buttons_visible:
-            for btn in self.buttons:
-                if btn.contains(event.pos()):
-                    btn.cmd()
-                    self.hide_buttons()
-                    break
-        else:
-            self.hide_buttons()
-
-    def spawn_food(self, food_type="meal"):
-        if self.food_pos:
+    def start_placing_food(self, food_type="meal"):
+        if self.food_pos or self.placing_food:
             return
         self.food_type = food_type
-        self.food_pos = QtCore.QPoint(60, self.height() - 80)
-        self.food_dragging = True
+        self.placing_food = True
+        self.food_mouse_pos = QtGui.QCursor.pos() - self.mapToGlobal(QtCore.QPoint(0, 0))
+        self.hide_buttons()
         self.update()
 
     def move_tamagotchi_to_food(self):
         if not self.food_pos:
             return
-        # Movimento animato verso il cibo
         self.anim = QtCore.QPropertyAnimation(self, b"tama_pos")
         self.anim.setDuration(600)
         self.anim.setStartValue(self.tama_pos)
