@@ -17,9 +17,9 @@ class TamagotchiOverlay(QtWidgets.QWidget):
         self.tama_img = QtGui.QPixmap(image_path).scaled(150, 150, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
         self._tama_pos = QtCore.QPoint(self.width() // 2 - 75, self.height() // 2 - 75)
 
-        self.food_img = QtGui.QPixmap("food.png").scaled(60, 60, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
         self.food_pos = None
         self.food_type = None
+        self.food_emoji = None
 
         self.placing_food = False
         self.food_mouse_pos = QtCore.QPoint(0, 0)
@@ -62,10 +62,23 @@ class TamagotchiOverlay(QtWidgets.QWidget):
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.drawPixmap(self.tama_pos, self.tama_img)
-        if self.food_pos:
-            painter.drawPixmap(self.food_pos, self.food_img)
-        if self.placing_food:
-            painter.drawPixmap(self.food_mouse_pos - QtCore.QPoint(self.food_img.width() // 2, self.food_img.height() // 2), self.food_img)
+        # Disegna l'emoji del cibo se presente
+        if self.food_pos and self.food_emoji:
+            font = QtGui.QFont("Arial", 40)
+            painter.setFont(font)
+            painter.drawText(
+                QtCore.QRect(self.food_pos.x(), self.food_pos.y(), 60, 60),
+                QtCore.Qt.AlignCenter, self.food_emoji
+            )
+        # Disegna l'emoji mentre si sta posizionando il cibo
+        if self.placing_food and self.food_emoji:
+            font = QtGui.QFont("Arial", 40)
+            painter.setFont(font)
+            pos = self.food_mouse_pos - QtCore.QPoint(30, 30)
+            painter.drawText(
+                QtCore.QRect(pos.x(), pos.y(), 60, 60),
+                QtCore.Qt.AlignCenter, self.food_emoji
+            )
         if self.buttons_visible:
             for btn in self.buttons:
                 btn.draw(painter)
@@ -73,8 +86,7 @@ class TamagotchiOverlay(QtWidgets.QWidget):
     def mousePressEvent(self, event):
         if self.placing_food:
             # Posa il cibo dove hai cliccato
-            self.food_pos = event.pos() - QtCore.QPoint(self.food_img.width() // 2, self.food_img.height() // 2)
-            print(self.food_pos)
+            self.food_pos = event.pos() - QtCore.QPoint(30, 30)
             self.placing_food = False
             self.update()  # Richiede il repaint
             # Avvia l’animazione solo dopo che il cibo è stato disegnato
@@ -137,6 +149,7 @@ class TamagotchiOverlay(QtWidgets.QWidget):
         if self.food_pos or self.placing_food:
             return
         self.food_type = food_type
+        self.food_emoji = "🍚" if food_type == "meal" else "🍬"
         self.placing_food = True
         self.food_mouse_pos = QtGui.QCursor.pos() - self.mapToGlobal(QtCore.QPoint(0, 0))
         self.hide_buttons()
@@ -145,13 +158,10 @@ class TamagotchiOverlay(QtWidgets.QWidget):
     def move_tamagotchi_to_food(self):
         if not self.food_pos:
             return
-        print(f"Moving Tamagotchi to food at {self.food_pos}")
         self.anim = QtCore.QPropertyAnimation(self, b"tama_pos")
         self.anim.setDuration(1000)
         self.anim.setStartValue(self.tama_pos)
-        print(f"Start position: {self.tama_pos}")
         self.anim.setEndValue(self.food_pos)
-        print(f"End position: {self.food_pos}")
         self.anim.finished.connect(self.eat_food)
         self.anim.start()
 
@@ -167,6 +177,7 @@ class TamagotchiOverlay(QtWidgets.QWidget):
     def eat_food(self):
         self.tamagotchi.feed(self.food_type)
         self.food_pos = None
+        self.food_emoji = None
         self.update()
 
     def tick(self):
@@ -200,3 +211,4 @@ if __name__ == "__main__":
     overlay = TamagotchiOverlay(tama, "tamagochi.png")
     overlay.show()
     sys.exit(app.exec_())
+
