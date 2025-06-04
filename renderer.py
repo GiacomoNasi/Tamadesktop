@@ -30,7 +30,7 @@ class TamagotchiOverlay(QtWidgets.QWidget):
         self.update_status_labels_position()
         self.tick_timer = QtCore.QTimer(self)
         self.tick_timer.timeout.connect(self.tick)
-        self.tick_timer.start(1000)
+        self.tick_timer.start(10000)
 
         self.setMouseTracking(True)
 
@@ -136,7 +136,8 @@ class TamagotchiOverlay(QtWidgets.QWidget):
             for btn in self.buttons:
                 if btn.contains(event.pos()):
                     btn.cmd()
-                    self.hide_buttons()
+                    self.update()
+                    # NON chiudere il menu qui
                     break
         else:
             self.hide_buttons()
@@ -161,8 +162,7 @@ class TamagotchiOverlay(QtWidgets.QWidget):
                     "💤": "Fai dormire",
                     "🧼": "Pulisci",
                     "💊": "Cura",
-                    "😠": "Sgrida",
-                    "⏰": "Tick manuale"
+                    "😠": "Sgrida"
                 }
                 for btn in self.buttons:
                     if btn.contains(event.pos()):
@@ -196,8 +196,7 @@ class TamagotchiOverlay(QtWidgets.QWidget):
             ("💤", self.tamagotchi.sleep),
             ("🧼", self.tamagotchi.clean),
             ("💊", self.tamagotchi.heal),
-            ("😠", self.tamagotchi.scold),
-            ("⏰", self.tamagotchi.tick)
+            ("😠", self.tamagotchi.scold)
         ]
         buttons_per_row = 4
         spacing_x = 50
@@ -222,8 +221,9 @@ class TamagotchiOverlay(QtWidgets.QWidget):
         self.buttons_visible = False
         self.update()
 
-    def mouseDoubleClickEvent(self, event):
-        self.close()
+    # Rimuovi o commenta questo metodo per evitare che la finestra si chiuda al doppio click
+    # def mouseDoubleClickEvent(self, event):
+    #     self.close()
 
     def feed_and_update(self, food_type):
         self.tamagotchi.feed(food_type)
