@@ -95,15 +95,6 @@ class TamagotchiOverlay(QtWidgets.QWidget):
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.drawPixmap(self.tama_pos, self.tama_img)
-        # Disegna i biscotti per la fame
-        hunger = self.tamagotchi.status()["hunger"]
-        full_cookies = (100 - hunger) // 10
-        empty_cookies = 10 - full_cookies
-        # Calcola la posizione dove sarebbero state le label (sopra la prima label)
-        base_x = self.tama_pos.x() + self.tama_img.width() + 20
-        base_y = self.tama_pos.y()
-        x = base_x
-        y = base_y
 
         fields = [
             "hunger",
@@ -112,15 +103,42 @@ class TamagotchiOverlay(QtWidgets.QWidget):
             "weight", "discipline"
         ]
 
-        delta_y = 0
+        base_x = self.tama_pos.x() + self.tama_img.width() + 20
+        base_y = self.tama_pos.y()
+        icon_size = 48
+        col_spacing = 20
+        row_spacing = 8
+        num_cols = 2
+
         self.bar_areas.clear()
-        for f in fields:
-            metric = 100 - self.tamagotchi.status()[f] if f == "hunger" else self.tamagotchi.status()[f]
-            bar_rect = QtCore.QRect(x, y + delta_y, 26 * 10, 24)
-            self.bar_areas[f] = bar_rect
-            for i in range(metric // 10):
-                painter.drawPixmap(x + i * 26, y + delta_y, self.bar_icons[f])
-            delta_y = delta_y + 28
+        for idx, f in enumerate(fields):
+            value = self.tamagotchi.status()[f]
+            if f == "hunger":
+                percent = 1.0 - (value / 100.0)
+            else:
+                percent = value / 100.0
+
+            icon = self.bar_icons[f]
+            icon = icon.scaled(icon_size, icon_size, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+            col = idx % num_cols
+            row = idx // num_cols
+            px = base_x + col * (icon_size + col_spacing)
+            py = base_y + row * (icon_size + row_spacing)
+            self.bar_areas[f] = QtCore.QRect(px, py, icon_size, icon_size)
+
+            # Disegna la parte piena (opaca)
+            painter.save()
+            painter.setClipRect(px, py + int((1 - percent) * icon_size), icon_size, int(percent * icon_size))
+            painter.setOpacity(1.0)
+            painter.drawPixmap(px, py, icon)
+            painter.restore()
+
+            # Disegna la parte vuota (trasparente)
+            painter.save()
+            painter.setClipRect(px, py, icon_size, int((1 - percent) * icon_size))
+            painter.setOpacity(0.25)
+            painter.drawPixmap(px, py, icon)
+            painter.restore()
 
         # Disegna l'emoji del cibo se presente
         if self.food_pos and self.food_emoji:
