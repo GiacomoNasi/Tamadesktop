@@ -199,7 +199,31 @@ class TamagotchiOverlay(QtWidgets.QWidget):
                 )
                 break
         else:
-            QtWidgets.QToolTip.hideText()
+            # Tooltip per i bottoni azione
+            if self.buttons_visible:
+                action_tooltips = {
+                    "🍚": "Dai un pasto",
+                    "🍬": "Dai uno snack",
+                    "⚽": "Gioca",
+                    "💤": "Fai dormire",
+                    "🧼": "Pulisci",
+                    "💊": "Cura",
+                    "😠": "Sgrida",
+                    "⏰": "Tick manuale"
+                }
+                for btn in self.buttons:
+                    if btn.contains(event.pos()):
+                        tip = action_tooltips.get(btn.emoji, "Azione")
+                        QtWidgets.QToolTip.showText(
+                            self.mapToGlobal(event.pos()),
+                            tip,
+                            self
+                        )
+                        break
+                else:
+                    QtWidgets.QToolTip.hideText()
+            else:
+                QtWidgets.QToolTip.hideText()
 
     def mouseReleaseEvent(self, event):
         pass  # Non serve più per il cibo
@@ -222,10 +246,22 @@ class TamagotchiOverlay(QtWidgets.QWidget):
             ("😠", self.tamagotchi.scold),
             ("⏰", self.tamagotchi.tick)
         ]
+        buttons_per_row = 4
+        spacing_x = 50
+        spacing_y = 60
+
+        # Calcola la larghezza totale dei bottoni per centrare le righe rispetto al Tamagotchi
+        total_width = (buttons_per_row - 1) * spacing_x
         cx = self.tama_pos.x() + self.tama_img.width() // 2
         cy = self.tama_pos.y() + self.tama_img.height() + 40
+
         for i, (emoji, cmd) in enumerate(actions):
-            btn = ActionButton(emoji, QtCore.QPoint(cx - 180 + i * 50, cy), cmd)
+            row = i // buttons_per_row
+            col = i % buttons_per_row
+            # Centra la riga rispetto al centro del Tamagotchi
+            btn_x = cx - total_width // 2 + col * spacing_x
+            btn_y = cy + row * spacing_y
+            btn = ActionButton(emoji, QtCore.QPoint(btn_x, btn_y), cmd)
             self.buttons.append(btn)
         self.buttons_visible = True
         self.update()
