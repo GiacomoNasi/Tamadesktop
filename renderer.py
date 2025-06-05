@@ -179,7 +179,6 @@ class TamagotchiOverlay(QtWidgets.QWidget):
                     QtWidgets.QToolTip.hideText()
             else:
                 QtWidgets.QToolTip.hideText()
-
     def mouseReleaseEvent(self, event):
         pass
 
