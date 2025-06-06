@@ -55,7 +55,8 @@ class TamagotchiOverlay(QtWidgets.QWidget):
     def init_status_labels(self):
         fields = [
             "age",
-            "sick", "needs_toilet"
+            "sick", "needs_toilet",
+            "focus_mode"  # aggiungi questa riga
         ]
         y_offset = 0
         for field in fields:
@@ -77,7 +78,10 @@ class TamagotchiOverlay(QtWidgets.QWidget):
         status = self.tamagotchi.status()
         for field, label in self.status_labels.items():
             value = status[field]
-            label.setText(f"{field.capitalize()}: {value}")
+            if field == "focus_mode":
+                label.setText(f"Focus mode: {'ON' if value else 'OFF'}")
+            else:
+                label.setText(f"{field.capitalize()}: {value}")
         QtCore.QTimer.singleShot(500, self.update_status)
 
     def paintEvent(self, event):
@@ -164,7 +168,8 @@ class TamagotchiOverlay(QtWidgets.QWidget):
                     "💤": "Fai dormire",
                     "🧼": "Pulisci",
                     "💊": "Cura",
-                    "😠": "Sgrida"
+                    "😠": "Sgrida",
+                    "🎯": "Attiva/disattiva Focus Mode"
                 }
                 for btn in self.buttons:
                     if btn.contains(event.pos()):
@@ -179,6 +184,7 @@ class TamagotchiOverlay(QtWidgets.QWidget):
                     QtWidgets.QToolTip.hideText()
             else:
                 QtWidgets.QToolTip.hideText()
+
     def mouseReleaseEvent(self, event):
         pass
 
@@ -197,7 +203,8 @@ class TamagotchiOverlay(QtWidgets.QWidget):
             ("💤", self.tamagotchi.sleep),
             ("🧼", self.tamagotchi.clean),
             ("💊", self.tamagotchi.heal),
-            ("😠", self.tamagotchi.scold)
+            ("😠", self.tamagotchi.scold),
+            ("🎯", self.toggle_focus_mode)  # Focus mode button
         ]
         buttons_per_row = 4
         spacing_x = 50
@@ -228,6 +235,10 @@ class TamagotchiOverlay(QtWidgets.QWidget):
 
     def feed_and_update(self, food_type):
         self.tamagotchi.feed(food_type)
+        self.update()
+
+    def toggle_focus_mode(self):
+        self.tamagotchi.toggle_focus_mode()
         self.update()
 
     def get_tama_pos(self):

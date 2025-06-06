@@ -11,6 +11,7 @@ class Tamagotchi:
         self._discipline = 50
         self._sick = False
         self._needs_toilet = False
+        self._focus_mode = False
 
     @property
     def name(self):
@@ -59,6 +60,19 @@ class Tamagotchi:
     @property
     def needs_toilet(self):
         return self._needs_toilet
+
+    @property
+    def focus_mode(self):
+        return self._focus_mode
+
+    def enable_focus_mode(self):
+        self._focus_mode = True
+
+    def disable_focus_mode(self):
+        self._focus_mode = False
+
+    def toggle_focus_mode(self):
+        self._focus_mode = not self._focus_mode
 
     # Main actions
     def feed(self, food_type="meal"):
@@ -117,10 +131,20 @@ class Tamagotchi:
 
     # Time simulation
     def tick(self):
-        self._hunger = min(100, self._hunger + 2)
-        self._energy = max(0, self._energy - 1)
-        self._hygiene = max(0, self._hygiene - 1)
-        self._happiness = max(0, self._happiness - 1)
+        if self._focus_mode:
+            self._discipline = min(100, self._discipline + 4)
+            self._hunger = min(100, self._hunger + 4)
+            self._happiness = min(100, self._happiness + 4)
+            self._energy = max(0, self._energy - 4)
+            self._hygiene = max(0, self._hygiene - 1)
+            self._health = min(100, self._health)
+            self._age += 0
+            self._weight = min(100, max(0, self._weight))
+        else:
+            self._hunger = min(100, self._hunger + 2)
+            self._energy = max(0, self._energy - 1)
+            self._hygiene = max(0, self._hygiene - 1)
+            self._happiness = max(0, self._happiness - 1)
         if self._hunger > 80 or self._hygiene < 20:
             self._health = max(0, self._health - 2)
         if self._health < 40:
@@ -156,5 +180,6 @@ class Tamagotchi:
             "weight": self._weight,
             "discipline": self._discipline,
             "sick": self._sick,
-            "needs_toilet": self._needs_toilet
+            "needs_toilet": self._needs_toilet,
+            "focus_mode": self._focus_mode
         }
